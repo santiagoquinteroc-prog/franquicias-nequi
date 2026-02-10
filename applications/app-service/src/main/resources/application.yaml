@@ -40,3 +40,16 @@ management:
 
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    use-root-path: false
+  packages-to-scan: com.red.franquicias.nequi.api
+  show-actuator: false
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  router-operation-order: method
