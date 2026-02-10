@@ -4,6 +4,7 @@ import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import io.r2dbc.postgresql.client.SSLMode;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,14 +20,16 @@ public class PostgreSQLConnectionPool {
 
 	@Bean
 	public ConnectionPool getConnectionConfig(PostgresqlConnectionProperties properties) {
-		PostgresqlConnectionConfiguration dbConfiguration = PostgresqlConnectionConfiguration.builder()
-                .host(properties.host())
-                .port(properties.port())
-                .database(properties.database())
-                .schema(properties.schema())
-                .username(properties.username())
-                .password(properties.password())
-                .build();
+        PostgresqlConnectionConfiguration dbConfiguration =
+                PostgresqlConnectionConfiguration.builder()
+                        .host(properties.host())
+                        .port(properties.port())
+                        .database(properties.database())
+                        .schema(properties.schema())
+                        .username(properties.username())
+                        .password(properties.password())
+//                        .sslMode(SSLMode.REQUIRE)//todo: enable ssl if needed in production
+                        .build();
 
         ConnectionPoolConfiguration poolConfiguration = ConnectionPoolConfiguration.builder()
                 .connectionFactory(new PostgresqlConnectionFactory(dbConfiguration))
