@@ -5,6 +5,8 @@ import lombok.*;
 
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Product {
 
     private Long id;

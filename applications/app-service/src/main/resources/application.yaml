@@ -1,5 +1,6 @@
 server:
   port: 8080
+
 spring:
   application:
     name: "franquicias-nequi"
@@ -11,6 +12,22 @@ spring:
       path: "/h2"
   profiles:
     include: null
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+
+adapters:
+  r2dbc:
+    host: localhost
+    port: 5432
+    database: franquicias_db
+    schema: public
+    username: postgres
+    password: admin
+
 management:
   endpoints:
     web:
@@ -20,5 +37,6 @@ management:
     health:
       probes:
         enabled: true
+
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"

@@ -4,6 +4,8 @@ import lombok.*;
 
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Branch {
     private Long id;
     private Long franchiseId;
