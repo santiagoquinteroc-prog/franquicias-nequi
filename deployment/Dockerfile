@@ -1,7 +1,17 @@
-FROM eclipse-temurin:25-jdk-alpine
-VOLUME /tmp
-COPY *.jar franquicias-nequi.jar
-ENV JAVA_OPTS=" -Xshareclasses:name=cacheapp,cacheDir=/cache,nonfatal -XX:+UseContainerSupport -XX:MaxRAMPercentage=70 -Djava.security.egd=file:/dev/./urandom"
-# Replace with a non-root user to avoid running the container with excessive privileges
-USER appuser
-ENTRYPOINT [ "/bin/sh", "-c", "/opt/java/openjdk/bin/java $JAVA_OPTS  -jar /franquicias-nequi.jar" ]
+FROM gradle:8.10-jdk17 AS build
+WORKDIR /workspace
+
+# Copiamos todo el repo (multi-módulo)
+COPY . .
+
+# Construye el jar ejecutable del módulo app-service
+RUN gradle :app-service:bootJar --no-daemon
+
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+
+# Copiamos el jar generado (nombre depende de tu bootJar config)
+COPY --from=build /workspace/applications/app-service/build/libs/*.jar app.jar
+
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","app.jar"]

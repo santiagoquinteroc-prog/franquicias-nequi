@@ -17,7 +17,7 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(25)
+            languageVersion = JavaLanguageVersion.of(17)
         }
     }
 
@@ -80,6 +80,10 @@ subprojects {
             csv.setRequired false
             html.setOutputLocation layout.buildDirectory.dir("reports/jacocoHtml")
         }
+    }
+
+    configurations.configureEach {
+        exclude group: "tools.jackson.core", module: "jackson-databind"
     }
 
 }

@@ -21,22 +21,71 @@ spring:
 
 adapters:
   r2dbc:
-    host: localhost
-    port: 5432
-    database: franquicias_db
-    schema: public
-    username: postgres
-    password: admin
+    host: ${ADAPTERS_R2DBC_HOST:localhost}
+    port: ${ADAPTERS_R2DBC_PORT:5432}
+    database: ${ADAPTERS_R2DBC_DATABASE:franquicias_db}
+    schema: ${ADAPTERS_R2DBC_SCHEMA:public}
+    username: ${ADAPTERS_R2DBC_USERNAME:postgres}
+    password: ${ADAPTERS_R2DBC_PASSWORD:admin}
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "health,prometheus"
-  endpoint:
-    health:
-      probes:
-        enabled: true
+
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: "health,prometheus"
+#  endpoint:
+#    health:
+#      probes:
+#        enabled: true
 
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    use-root-path: false
+  packages-to-scan: com.red.franquicias.nequi.api
+  show-actuator: false
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  router-operation-order: method
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10000
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        minimum-number-of-calls: 5
+    instances:
+      franchiseService:
+        base-config: default
+      branchService:
+        base-config: default
+      productService:
+        base-config: default
+
+management:
+
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        resilience4j.circuitbreaker.calls: true
