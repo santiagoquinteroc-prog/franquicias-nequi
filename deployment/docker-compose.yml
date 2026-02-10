@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: franquicias_app
+    ports:
+      - "8080:8080"
+    environment:
+      ADAPTERS_R2DBC_HOST: postgres
+      ADAPTERS_R2DBC_PORT: 5432
+      ADAPTERS_R2DBC_DATABASE: franquicias_db
+      ADAPTERS_R2DBC_SCHEMA: public
+      ADAPTERS_R2DBC_USERNAME: postgres
+      ADAPTERS_R2DBC_PASSWORD: admin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    container_name: franquicias_db
+    environment:
+      POSTGRES_DB: franquicias_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d franquicias_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
