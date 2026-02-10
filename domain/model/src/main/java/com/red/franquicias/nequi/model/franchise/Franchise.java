@@ -1,15 +1,9 @@
 package com.red.franquicias.nequi.model.franchise;
-import lombok.Builder;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-//import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@Setter
-//@NoArgsConstructor
-@AllArgsConstructor
-@Builder(toBuilder = true)
+
+
+@Data
 public class Franchise {
     private Long id;
     private String name;
