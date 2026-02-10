@@ -198,15 +198,24 @@ resource "aws_ecs_task_definition" "app" {
           "awslogs-stream-prefix" = "ecs"
         }
       }
-
       environment = [
-        { name = "SPRING_PROFILES_ACTIVE", value = "prod" },
+        { name = "SPRING_PROFILES_ACTIVE",  value = "prod" },
 
+        { name = "ADAPTERS_R2DBC_HOST",     value = aws_db_instance.main.address },
+        { name = "ADAPTERS_R2DBC_PORT",     value = "5432" },
+        { name = "ADAPTERS_R2DBC_DATABASE", value = var.db_name },
+        { name = "ADAPTERS_R2DBC_SCHEMA",   value = "public" },
+        { name = "ADAPTERS_R2DBC_USERNAME", value = var.db_username },
+        { name = "ADAPTERS_R2DBC_PASSWORD", value = var.db_password },
 
-        { name = "SPRING_R2DBC_URL",      value = "r2dbc:postgresql://${aws_db_instance.main.address}:5432/${var.db_name}" },
+        {
+          name  = "SPRING_R2DBC_URL",
+          value = "r2dbc:postgresql://${aws_db_instance.main.address}:5432/${var.db_name}?ssl=true"
+        },
         { name = "SPRING_R2DBC_USERNAME", value = var.db_username },
         { name = "SPRING_R2DBC_PASSWORD", value = var.db_password }
       ]
+
     }
   ])
 
@@ -240,7 +249,7 @@ resource "aws_lb_target_group" "app" {
     timeout             = 5
     interval            = 30
 
-    # Ajusta si tu health es distinto:
+
     path     = "/actuator/health"
     matcher  = "200-399"
     protocol = "HTTP"
