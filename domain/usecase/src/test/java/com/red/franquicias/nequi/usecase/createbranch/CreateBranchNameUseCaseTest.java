@@ -36,6 +36,8 @@ class CreateBranchNameUseCaseTest {
     @Test
     void create_whenFranchiseNotFound_shouldEmitBusinessException() {
         when(branchRepository.findByIdBranch(1L)).thenReturn(Mono.empty());
+        when(branchRepository.existsByNameAndFranchiseId("Test Branch", 1L))
+                .thenReturn(Mono.just(false));
 
         StepVerifier.create(useCase.create(validBranch))
                 .expectErrorMatches(ex ->
@@ -45,7 +47,7 @@ class CreateBranchNameUseCaseTest {
                 .verify();
 
         verify(branchRepository).findByIdBranch(1L);
-        verifyNoMoreInteractions(branchRepository);
+        verify(branchRepository).existsByNameAndFranchiseId("Test Branch", 1L);
     }
 
     @Test
@@ -87,6 +89,8 @@ class CreateBranchNameUseCaseTest {
     void create_whenRepositoryFails_shouldWrapAsTechnicalException() {
         when(branchRepository.findByIdBranch(1L))
                 .thenReturn(Mono.error(new RuntimeException("DB down")));
+        when(branchRepository.existsByNameAndFranchiseId("Test Branch", 1L))
+                .thenReturn(Mono.just(false));
 
         StepVerifier.create(useCase.create(validBranch))
                 .expectErrorMatches(ex ->
@@ -96,7 +100,7 @@ class CreateBranchNameUseCaseTest {
                 .verify();
 
         verify(branchRepository).findByIdBranch(1L);
-        verifyNoMoreInteractions(branchRepository);
+        verify(branchRepository).existsByNameAndFranchiseId("Test Branch", 1L);
     }
 
     @Test

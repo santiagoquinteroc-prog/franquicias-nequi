@@ -60,6 +60,7 @@ class UpdateBranchNameUseCaseTest {
     @Test
     void updateName_franchiseNotFound_shouldReturnBusinessException() {
         when(franchiseRepository.findByIdFranchise(999L)).thenReturn(Mono.empty());
+        when(branchRepository.findByIdAndFranchiseId(1L, 999L)).thenReturn(Mono.empty());
 
         StepVerifier.create(useCase.updateName(1L, 999L, "New Name"))
                 .expectErrorMatches(ex ->
@@ -69,7 +70,7 @@ class UpdateBranchNameUseCaseTest {
                 .verify();
 
         verify(franchiseRepository).findByIdFranchise(999L);
-        verify(branchRepository, never()).findByIdAndFranchiseId(any(), any());
+        verify(branchRepository).findByIdAndFranchiseId(1L, 999L);
         verify(branchRepository, never()).existsByNameAndFranchiseId(any(), any());
         verify(branchRepository, never()).saveBranch(any());
     }
@@ -133,7 +134,6 @@ class UpdateBranchNameUseCaseTest {
     void updateName_sameName_shouldReturnUpdatedBranch() {
         when(franchiseRepository.findByIdFranchise(1L)).thenReturn(Mono.just(existingFranchise));
         when(branchRepository.findByIdAndFranchiseId(1L, 1L)).thenReturn(Mono.just(existingBranch));
-        when(branchRepository.existsByNameAndFranchiseId("Original Name", 1L)).thenReturn(Mono.just(true));
         when(branchRepository.saveBranch(any(Branch.class))).thenReturn(Mono.just(existingBranch));
 
         StepVerifier.create(useCase.updateName(1L, 1L, "Original Name"))
@@ -142,7 +142,7 @@ class UpdateBranchNameUseCaseTest {
 
         verify(franchiseRepository).findByIdFranchise(1L);
         verify(branchRepository).findByIdAndFranchiseId(1L, 1L);
-        verify(branchRepository).existsByNameAndFranchiseId("Original Name", 1L);
+        verify(branchRepository, never()).existsByNameAndFranchiseId(any(), any());
         verify(branchRepository).saveBranch(any(Branch.class));
     }
 
@@ -150,6 +150,7 @@ class UpdateBranchNameUseCaseTest {
     void updateName_franchiseRepositoryError_shouldReturnTechnicalException() {
         RuntimeException repositoryError = new RuntimeException("Database error");
         when(franchiseRepository.findByIdFranchise(1L)).thenReturn(Mono.error(repositoryError));
+        when(branchRepository.findByIdAndFranchiseId(1L, 1L)).thenReturn(Mono.empty());
 
         StepVerifier.create(useCase.updateName(1L, 1L, "New Name"))
                 .expectErrorMatches(ex ->
@@ -160,7 +161,7 @@ class UpdateBranchNameUseCaseTest {
                 .verify();
 
         verify(franchiseRepository).findByIdFranchise(1L);
-        verify(branchRepository, never()).findByIdAndFranchiseId(any(), any());
+        verify(branchRepository).findByIdAndFranchiseId(1L, 1L);
         verify(branchRepository, never()).existsByNameAndFranchiseId(any(), any());
         verify(branchRepository, never()).saveBranch(any());
     }

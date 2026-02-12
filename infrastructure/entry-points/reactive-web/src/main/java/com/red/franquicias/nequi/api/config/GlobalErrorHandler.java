@@ -13,6 +13,7 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.server.WebExceptionHandler;
 import reactor.core.publisher.Mono;
 
@@ -43,6 +44,10 @@ public class GlobalErrorHandler implements WebExceptionHandler {
             status = safeStatus(pe.getTechnicalMessage().getCode(), HttpStatus.INTERNAL_SERVER_ERROR);
 
             message = pe.getTechnicalMessage().getMessage();
+
+        } else if (ex instanceof ServerWebInputException swie) {
+            status = HttpStatus.BAD_REQUEST;
+            message = swie.getReason() != null ? swie.getReason() : "Invalid request body";
 
         } else if (ex instanceof ResponseStatusException rse) {
             status = HttpStatus.valueOf(rse.getStatusCode().value());

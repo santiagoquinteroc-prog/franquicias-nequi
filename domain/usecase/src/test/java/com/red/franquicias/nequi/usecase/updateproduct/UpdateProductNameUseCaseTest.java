@@ -168,7 +168,6 @@ class UpdateProductNameUseCaseTest {
         when(franchiseRepository.findByIdFranchise(1L)).thenReturn(Mono.just(existingFranchise));
         when(branchRepository.findByIdAndFranchiseId(1L, 1L)).thenReturn(Mono.just(existingBranch));
         when(productRepository.findByIdAndBranchId(1L, 1L)).thenReturn(Mono.just(existingProduct));
-        when(productRepository.existsByNameAndBranchId("Original Name", 1L)).thenReturn(Mono.just(true));
         when(productRepository.saveProduct(any(Product.class))).thenReturn(Mono.just(existingProduct));
 
         StepVerifier.create(useCase.updateName(1L, 1L, 1L, "Original Name"))
@@ -178,7 +177,7 @@ class UpdateProductNameUseCaseTest {
         verify(franchiseRepository).findByIdFranchise(1L);
         verify(branchRepository).findByIdAndFranchiseId(1L, 1L);
         verify(productRepository).findByIdAndBranchId(1L, 1L);
-        verify(productRepository).existsByNameAndBranchId("Original Name", 1L);
+        verify(productRepository, never()).existsByNameAndBranchId(any(), any());
         verify(productRepository).saveProduct(any(Product.class));
     }
 

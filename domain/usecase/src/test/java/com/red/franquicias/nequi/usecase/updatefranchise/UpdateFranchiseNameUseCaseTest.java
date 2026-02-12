@@ -84,7 +84,6 @@ class UpdateFranchiseNameUseCaseTest {
     @Test
     void updateName_sameName_shouldReturnUpdatedFranchise() {
         when(franchiseRepository.findByIdFranchise(1L)).thenReturn(Mono.just(existingFranchise));
-        when(franchiseRepository.existsByNameFranchise("Original Name")).thenReturn(Mono.just(true));
         when(franchiseRepository.saveFranchise(any(Franchise.class))).thenReturn(Mono.just(existingFranchise));
 
         StepVerifier.create(useCase.updateName(1L, "Original Name"))
@@ -92,7 +91,7 @@ class UpdateFranchiseNameUseCaseTest {
                 .verifyComplete();
 
         verify(franchiseRepository).findByIdFranchise(1L);
-        verify(franchiseRepository).existsByNameFranchise("Original Name");
+        verify(franchiseRepository, never()).existsByNameFranchise(any());
         verify(franchiseRepository).saveFranchise(any(Franchise.class));
     }
 
