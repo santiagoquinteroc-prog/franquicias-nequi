@@ -3,13 +3,14 @@ package com.red.franquicias.nequi.usecase.removeproduct;
 import com.red.franquicias.nequi.enums.TechnicalMessage;
 import com.red.franquicias.nequi.exception.BusinessException;
 
+import com.red.franquicias.nequi.exception.TechnicalException;
 import com.red.franquicias.nequi.model.branch.gateways.BranchRepository;
 import com.red.franquicias.nequi.model.franchise.gateways.FranchiseRepository;
 
 import com.red.franquicias.nequi.model.product.gateways.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
-
+import com.red.franquicias.nequi.usecase.validation.UseCaseValidations;
 
 @RequiredArgsConstructor
 public class RemoveProductUseCase {
@@ -20,16 +21,23 @@ public class RemoveProductUseCase {
 
     public Mono<Void> remove(Long productId, Long branchId, Long franchiseId) {
 
-        return franchiseRepository.findByIdFranchise(franchiseId)
-                .switchIfEmpty(Mono.error(new BusinessException(TechnicalMessage.FRANCHISE_NOT_FOUND)))
-                .flatMap(franchise ->
-                        branchRepository.findByIdAndFranchiseId(branchId, franchiseId)
-                                .switchIfEmpty(Mono.error(new BusinessException(TechnicalMessage.BRANCH_NOT_FOUND)))
-                                .flatMap(branch ->
-                                        productRepository.findByIdAndBranchId(productId, branchId)
-                                                .switchIfEmpty(Mono.error(new BusinessException(TechnicalMessage.PRODUCT_NOT_FOUND)))
-                                                .flatMap(product -> productRepository.deleteById(productId))
+        return UseCaseValidations.requireNotNull(productId, TechnicalMessage.INVALID_PRODUCT_ID)
+                .then(UseCaseValidations.requireNotNull(branchId, TechnicalMessage.INVALID_BRANCH_ID))
+                .then(UseCaseValidations.requireNotNull(franchiseId, TechnicalMessage.INVALID_FRANCHISE_ID))
+                .then(Mono.defer(() ->
+                        franchiseRepository.findByIdFranchise(franchiseId)
+                                .switchIfEmpty(Mono.error(new BusinessException(TechnicalMessage.FRANCHISE_NOT_FOUND)))
+                                .flatMap(franchise -> branchRepository.findByIdAndFranchiseId(branchId, franchiseId)
+                                        .switchIfEmpty(Mono.error(new BusinessException(TechnicalMessage.BRANCH_NOT_FOUND)))
                                 )
+                                .flatMap(branch -> productRepository.findByIdAndBranchId(productId, branchId)
+                                        .switchIfEmpty(Mono.error(new BusinessException(TechnicalMessage.PRODUCT_NOT_FOUND)))
+                                )
+                                .flatMap(p -> productRepository.deleteById(productId))
+                ))
+                .onErrorMap(
+                        ex -> !(ex instanceof BusinessException) && !(ex instanceof TechnicalException),
+                        ex -> new TechnicalException(ex, TechnicalMessage.PRODUCT_REMOVE_ERROR)
                 );
     }
 }
