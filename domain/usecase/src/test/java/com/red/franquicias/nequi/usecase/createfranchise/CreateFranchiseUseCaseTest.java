@@ -116,9 +116,6 @@ class CreateFranchiseUseCaseTest {
     void create_businessExceptionDuringProcess_shouldNotWrapInTechnicalException() {
 
         Franchise franchise = new Franchise(null, "Test Franchise");
-        BusinessException businessException = new BusinessException(
-                TechnicalMessage.FRANCHISE_NAME_ALREADY_EXISTS
-        );
 
         when(franchiseRepository.existsByNameFranchise("Test Franchise"))
                 .thenReturn(Mono.just(true));
@@ -127,7 +124,6 @@ class CreateFranchiseUseCaseTest {
         StepVerifier.create(useCase.create(franchise))
                 .expectErrorMatches(ex ->
                         ex instanceof BusinessException be
-                        && be == businessException.getClass().cast(ex)
                         && be.getTechnicalMessage() == TechnicalMessage.FRANCHISE_NAME_ALREADY_EXISTS
                 )
                 .verify();
