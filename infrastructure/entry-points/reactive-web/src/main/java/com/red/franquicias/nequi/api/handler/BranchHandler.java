@@ -4,7 +4,7 @@ package com.red.franquicias.nequi.api.handler;
 import com.red.franquicias.nequi.api.dto.BranchRequest;
 import com.red.franquicias.nequi.api.dto.BranchResponse;
 import com.red.franquicias.nequi.api.mapper.BranchMapper;
-import com.red.franquicias.nequi.model.branch.Branch;
+import com.red.franquicias.nequi.api.validation.RequestValidator;
 import com.red.franquicias.nequi.usecase.createbranch.CreateBranchNameUseCase;
 import com.red.franquicias.nequi.usecase.updatebranch.UpdateBranchNameUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,22 +12,24 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+
 @Component
 @Tag(name = "Branches", description = "API for branch management")
 public class BranchHandler {
     private final CreateBranchNameUseCase createBranchUseCase;
     private final UpdateBranchNameUseCase updateBranchNameUseCase;
+    private final RequestValidator requestValidator;
 
-    public BranchHandler(CreateBranchNameUseCase createBranchUseCase, UpdateBranchNameUseCase updateBranchNameUseCase) {
+    public BranchHandler(CreateBranchNameUseCase createBranchUseCase, UpdateBranchNameUseCase updateBranchNameUseCase, RequestValidator requestValidator) {
         this.createBranchUseCase = createBranchUseCase;
         this.updateBranchNameUseCase = updateBranchNameUseCase;
+        this.requestValidator = requestValidator;
     }
 
 
@@ -37,18 +39,17 @@ public class BranchHandler {
     @ApiResponse(responseCode = "404", description = "Franchise not found")
     @ApiResponse(responseCode = "409", description = "Duplicate branch name")
     public Mono<ServerResponse> create(ServerRequest request) {
-        Long franchiseId = Long.parseLong(request.pathVariable("franchiseId"));
+        Long franchiseId = requestValidator.pathLong(request, "franchiseId");
+
         return request.bodyToMono(BranchRequest.class)
+                .flatMap(requestValidator::validate)
                 .flatMap(branchRequest -> {
-                    Branch branch = BranchMapper.toDomain(branchRequest, franchiseId);
+                    var branch = BranchMapper.toDomain(branchRequest, franchiseId);
                     return createBranchUseCase.create(branch);
                 })
-                .flatMap(branch -> {
-                    var response = BranchMapper.toResponse(branch);
-                    return ServerResponse.status(HttpStatus.CREATED)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(response);
-                });
+                .flatMap(branch -> ServerResponse.status(201)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(BranchMapper.toResponse(branch)));
     }
 
     @Operation(summary = "Update branch name", description = "Updates the name of an existing branch")
@@ -57,16 +58,15 @@ public class BranchHandler {
     @ApiResponse(responseCode = "404", description = "Franchise or branch not found")
     @ApiResponse(responseCode = "409", description = "Duplicate branch name")
     public Mono<ServerResponse> updateName(ServerRequest request) {
-        Long franchiseId = Long.parseLong(request.pathVariable("franchiseId"));
-        Long branchId = Long.parseLong(request.pathVariable("branchId"));
+        Long franchiseId = requestValidator.pathLong(request, "franchiseId");
+        Long branchId = requestValidator.pathLong(request, "branchId");
+
         return request.bodyToMono(BranchRequest.class)
-                .flatMap(branchRequest -> updateBranchNameUseCase.updateName(branchId, franchiseId, branchRequest.name()))
-                .flatMap(branch -> {
-                    var response = BranchMapper.toResponse(branch);
-                    return ServerResponse.ok()
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(response);
-                });
+                .flatMap(requestValidator::validate)
+                .flatMap(body -> updateBranchNameUseCase.updateName(branchId, franchiseId, body.name()))
+                .flatMap(branch -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(BranchMapper.toResponse(branch)));
     }
 }
 

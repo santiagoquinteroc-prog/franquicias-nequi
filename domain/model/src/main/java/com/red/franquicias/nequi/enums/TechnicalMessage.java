@@ -16,7 +16,10 @@ public enum TechnicalMessage {
     BRANCH_NOT_FOUND("404", "Branch not found or does not belong to franchise", "branchId"),
     PRODUCT_NOT_FOUND("404", "Product not found", "productId"),
     PRODUCT_NAME_ALREADY_EXISTS("409", "Product name already exists in this branch", "name"),
-    TOP_PRODUCTS_QUERY_ERROR("500", "Error retrieving top products", null);
+    INVALID_BRANCH_NAME("400", "Branch name is required", "name"),
+    INVALID_FRANCHISE_ID("400", "Franchise id is required", "franchiseId"),
+    TOP_PRODUCTS_QUERY_ERROR("500", "Error retrieving top products", null),
+    INVALID_BRANCH_ID("400", "Branch id is required", "branchId");
 
     private final String code;
     private final String message;
