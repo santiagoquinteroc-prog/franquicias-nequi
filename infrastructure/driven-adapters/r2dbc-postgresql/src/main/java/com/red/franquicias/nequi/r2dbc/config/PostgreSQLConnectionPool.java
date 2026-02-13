@@ -28,7 +28,7 @@ public class PostgreSQLConnectionPool {
                         .schema(properties.schema())
                         .username(properties.username())
                         .password(properties.password())
-//                        .sslMode(SSLMode.REQUIRE)//todo: enable ssl if needed in production
+                        .sslMode(SSLMode.REQUIRE)//todo: enable ssl if needed in production
                         .build();
 
         ConnectionPoolConfiguration poolConfiguration = ConnectionPoolConfiguration.builder()

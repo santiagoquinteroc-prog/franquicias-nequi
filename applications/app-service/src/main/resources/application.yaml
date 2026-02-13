@@ -29,7 +29,7 @@ adapters:
     password: ${ADAPTERS_R2DBC_PASSWORD:admin}
 
 cors:
-  allowed-origins: "http://localhost:4200,http://localhost:8080"
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:8080}
 
 springdoc:
   api-docs:
