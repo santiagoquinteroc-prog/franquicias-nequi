@@ -1,5 +1,6 @@
 dependencies {
     implementation project(':model')
+    implementation project(':helpers')
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
 
     implementation 'org.postgresql:r2dbc-postgresql'
