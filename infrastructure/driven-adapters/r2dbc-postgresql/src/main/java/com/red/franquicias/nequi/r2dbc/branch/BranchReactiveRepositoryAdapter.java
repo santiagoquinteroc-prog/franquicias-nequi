@@ -1,5 +1,7 @@
 package com.red.franquicias.nequi.r2dbc.branch;
 
+import com.red.franquicias.nequi.enums.TechnicalMessage;
+import com.red.franquicias.nequi.exception.R2dbcExceptionMapper;
 import com.red.franquicias.nequi.logging.AdapterLogger;
 import com.red.franquicias.nequi.model.branch.Branch;
 import com.red.franquicias.nequi.model.branch.gateways.BranchRepository;
@@ -9,6 +11,7 @@ import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 @Slf4j
 @Repository
@@ -32,7 +35,8 @@ public class BranchReactiveRepositoryAdapter extends ReactiveAdapterOperations<B
                     long duration = adapterLogger.calculateDuration(startTime);
                     adapterLogger.outboundResponse("BranchRepository", "saveBranch", "branchId=" + result.getId(), duration);
                 })
-                .doOnError(error -> adapterLogger.error("BranchRepository", "saveBranch", (Exception) error, "branchId=" + branch.getId()));
+                .doOnError(error -> adapterLogger.error("BranchRepository", "saveBranch", error, "branchId=" + branch.getId()))
+                .onErrorMap(this::mapException);
     }
 
     @Override
@@ -46,7 +50,8 @@ public class BranchReactiveRepositoryAdapter extends ReactiveAdapterOperations<B
                     long duration = adapterLogger.calculateDuration(startTime);
                     adapterLogger.outboundResponse("BranchRepository", "findByIdBranch", "branchId=" + result.getId(), duration);
                 })
-                .doOnError(error -> adapterLogger.error("BranchRepository", "findByIdBranch", (Exception) error, "branchId=" + id));
+                .doOnError(error -> adapterLogger.error("BranchRepository", "findByIdBranch", error, "branchId=" + id))
+                .onErrorMap(this::mapException);
     }
 
     @Override
@@ -60,7 +65,8 @@ public class BranchReactiveRepositoryAdapter extends ReactiveAdapterOperations<B
                     long duration = adapterLogger.calculateDuration(startTime);
                     adapterLogger.outboundResponse("BranchRepository", "findByIdAndFranchiseId", "branchId=" + result.getId(), duration);
                 })
-                .doOnError(error -> adapterLogger.error("BranchRepository", "findByIdAndFranchiseId", (Exception) error, "branchId=" + id + " franchiseId=" + franchiseId));
+                .doOnError(error -> adapterLogger.error("BranchRepository", "findByIdAndFranchiseId", error, "branchId=" + id + " franchiseId=" + franchiseId))
+                .onErrorMap(this::mapException);
     }
 
     @Override
@@ -74,7 +80,8 @@ public class BranchReactiveRepositoryAdapter extends ReactiveAdapterOperations<B
                     long duration = adapterLogger.calculateDuration(startTime);
                     adapterLogger.outboundResponse("BranchRepository", "existsByNameAndFranchiseId", "exists=" + exists, duration);
                 })
-                .doOnError(error -> adapterLogger.error("BranchRepository", "existsByNameAndFranchiseId", (Exception) error, "name=" + name + " franchiseId=" + franchiseId));
+                .doOnError(error -> adapterLogger.error("BranchRepository", "existsByNameAndFranchiseId", error, "name=" + name + " franchiseId=" + franchiseId))
+                .onErrorMap(this::mapException);
     }
 
     @Override
@@ -86,10 +93,20 @@ public class BranchReactiveRepositoryAdapter extends ReactiveAdapterOperations<B
                 .map(this::toEntity)
                 .doFinally(signalType -> {
                     long duration = adapterLogger.calculateDuration(startTime);
-                    if (signalType.toString().equals("ON_COMPLETE")) {
+                    if (signalType == SignalType.ON_COMPLETE) {
                         adapterLogger.outboundResponse("BranchRepository", "findByFranchiseId", "franchiseId=" + franchiseId, duration);
                     }
                 })
-                .doOnError(error -> adapterLogger.error("BranchRepository", "findByFranchiseId", (Exception) error, "franchiseId=" + franchiseId));
+                .doOnError(error -> adapterLogger.error("BranchRepository", "findByFranchiseId", error, "franchiseId=" + franchiseId))
+                .onErrorMap(this::mapException);
+    }
+
+    private Throwable mapException(Throwable throwable) {
+        return R2dbcExceptionMapper.mapToBusinessOrTechnical(
+                throwable,
+                TechnicalMessage.BRANCH_NAME_ALREADY_EXISTS,
+                TechnicalMessage.BRANCH_NOT_FOUND,
+                TechnicalMessage.BRANCH_CREATE_ERROR
+        );
     }
 }

@@ -42,7 +42,7 @@ public class AdapterLogger {
         );
     }
 
-    public void error(String component, String operation, Exception exception, String extraDetails) {
+    public void error(String component, String operation, Throwable exception, String extraDetails) {
         String correlationId = getCorrelationId();
         log.error(
             "event=error component={} operation={} correlationId={} exception={} message={} extra_details={}",
@@ -73,6 +73,7 @@ public class AdapterLogger {
         return correlationId != null ? correlationId : "unknown";
     }
 }
+
 
 
 

@@ -1,5 +1,7 @@
 package com.red.franquicias.nequi.r2dbc.franchise;
 
+import com.red.franquicias.nequi.enums.TechnicalMessage;
+import com.red.franquicias.nequi.exception.R2dbcExceptionMapper;
 import com.red.franquicias.nequi.logging.AdapterLogger;
 import com.red.franquicias.nequi.model.franchise.Franchise;
 import com.red.franquicias.nequi.model.franchise.gateways.FranchiseRepository;
@@ -32,7 +34,8 @@ public class FranchiseReactiveRepositoryAdapter extends ReactiveAdapterOperation
                     long duration = adapterLogger.calculateDuration(startTime);
                     adapterLogger.outboundResponse("FranchiseRepository", "saveFranchise", "franchiseId=" + result.getId(), duration);
                 })
-                .doOnError(error -> adapterLogger.error("FranchiseRepository", "saveFranchise", (Exception) error, "franchiseId=" + franchise.getId()));
+                .doOnError(error -> adapterLogger.error("FranchiseRepository", "saveFranchise", error, "franchiseId=" + franchise.getId()))
+                .onErrorMap(this::mapException);
     }
 
     @Override
@@ -46,7 +49,8 @@ public class FranchiseReactiveRepositoryAdapter extends ReactiveAdapterOperation
                     long duration = adapterLogger.calculateDuration(startTime);
                     adapterLogger.outboundResponse("FranchiseRepository", "findByIdFranchise", "franchiseId=" + result.getId(), duration);
                 })
-                .doOnError(error -> adapterLogger.error("FranchiseRepository", "findByIdFranchise", (Exception) error, "franchiseId=" + id));
+                .doOnError(error -> adapterLogger.error("FranchiseRepository", "findByIdFranchise", error, "franchiseId=" + id))
+                .onErrorMap(this::mapException);
     }
 
     @Override
@@ -60,7 +64,17 @@ public class FranchiseReactiveRepositoryAdapter extends ReactiveAdapterOperation
                     long duration = adapterLogger.calculateDuration(startTime);
                     adapterLogger.outboundResponse("FranchiseRepository", "existsByNameFranchise", "exists=" + exists, duration);
                 })
-                .doOnError(error -> adapterLogger.error("FranchiseRepository", "existsByNameFranchise", (Exception) error, "name=" + name));
+                .doOnError(error -> adapterLogger.error("FranchiseRepository", "existsByNameFranchise", error, "name=" + name))
+                .onErrorMap(this::mapException);
+    }
+
+    private Throwable mapException(Throwable throwable) {
+        return R2dbcExceptionMapper.mapToBusinessOrTechnical(
+                throwable,
+                TechnicalMessage.FRANCHISE_NAME_ALREADY_EXISTS,
+                TechnicalMessage.FRANCHISE_NOT_FOUND,
+                TechnicalMessage.FRANCHISE_CREATE_ERROR
+        );
     }
 }
 
