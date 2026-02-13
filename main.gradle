@@ -82,6 +82,18 @@ subprojects {
         }
     }
 
+    jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                limit {
+                    minimum = 0.00
+                }
+            }
+        }
+    }
+
+    check.dependsOn jacocoTestCoverageVerification
+
     configurations.configureEach {
         exclude group: "tools.jackson.core", module: "jackson-databind"
     }
