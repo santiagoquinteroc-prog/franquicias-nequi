@@ -1,10 +1,10 @@
 package com.red.franquicias.nequi.api.handler;
 
-
 import com.red.franquicias.nequi.api.dto.BranchRequest;
 import com.red.franquicias.nequi.api.dto.BranchResponse;
 import com.red.franquicias.nequi.api.mapper.BranchMapper;
 import com.red.franquicias.nequi.api.validation.RequestValidator;
+import com.red.franquicias.nequi.logging.AdapterLogger;
 import com.red.franquicias.nequi.usecase.createbranch.CreateBranchNameUseCase;
 import com.red.franquicias.nequi.usecase.updatebranch.UpdateBranchNameUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,11 +25,13 @@ public class BranchHandler {
     private final CreateBranchNameUseCase createBranchUseCase;
     private final UpdateBranchNameUseCase updateBranchNameUseCase;
     private final RequestValidator requestValidator;
+    private final AdapterLogger adapterLogger;
 
-    public BranchHandler(CreateBranchNameUseCase createBranchUseCase, UpdateBranchNameUseCase updateBranchNameUseCase, RequestValidator requestValidator) {
+    public BranchHandler(CreateBranchNameUseCase createBranchUseCase, UpdateBranchNameUseCase updateBranchNameUseCase, RequestValidator requestValidator, AdapterLogger adapterLogger) {
         this.createBranchUseCase = createBranchUseCase;
         this.updateBranchNameUseCase = updateBranchNameUseCase;
         this.requestValidator = requestValidator;
+        this.adapterLogger = adapterLogger;
     }
 
 
@@ -39,17 +41,24 @@ public class BranchHandler {
     @ApiResponse(responseCode = "404", description = "Franchise not found")
     @ApiResponse(responseCode = "409", description = "Duplicate branch name")
     public Mono<ServerResponse> create(ServerRequest request) {
+        long startTime = adapterLogger.startTimer();
         Long franchiseId = requestValidator.pathLong(request, "franchiseId");
+        adapterLogger.inboundStart("BranchHandler", "create", "franchiseId=" + franchiseId);
 
         return request.bodyToMono(BranchRequest.class)
                 .flatMap(requestValidator::validate)
                 .flatMap(branchRequest -> {
+                    adapterLogger.outboundRequest("CreateBranchUseCase", "create", "name=" + branchRequest.name());
                     var branch = BranchMapper.toDomain(branchRequest, franchiseId);
                     return createBranchUseCase.create(branch);
                 })
-                .flatMap(branch -> ServerResponse.status(201)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(BranchMapper.toResponse(branch)));
+                .flatMap(branch -> {
+                    long duration = adapterLogger.calculateDuration(startTime);
+                    adapterLogger.inboundEnd("BranchHandler", "create", "branchId=" + branch.getId(), duration);
+                    return ServerResponse.status(201)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(BranchMapper.toResponse(branch));
+                });
     }
 
     @Operation(summary = "Update branch name", description = "Updates the name of an existing branch")
@@ -58,15 +67,24 @@ public class BranchHandler {
     @ApiResponse(responseCode = "404", description = "Franchise or branch not found")
     @ApiResponse(responseCode = "409", description = "Duplicate branch name")
     public Mono<ServerResponse> updateName(ServerRequest request) {
+        long startTime = adapterLogger.startTimer();
         Long franchiseId = requestValidator.pathLong(request, "franchiseId");
         Long branchId = requestValidator.pathLong(request, "branchId");
+        adapterLogger.inboundStart("BranchHandler", "updateName", "branchId=" + branchId + " franchiseId=" + franchiseId);
 
         return request.bodyToMono(BranchRequest.class)
                 .flatMap(requestValidator::validate)
-                .flatMap(body -> updateBranchNameUseCase.updateName(branchId, franchiseId, body.name()))
-                .flatMap(branch -> ServerResponse.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(BranchMapper.toResponse(branch)));
+                .flatMap(body -> {
+                    adapterLogger.outboundRequest("UpdateBranchUseCase", "updateName", "name=" + body.name());
+                    return updateBranchNameUseCase.updateName(branchId, franchiseId, body.name());
+                })
+                .flatMap(branch -> {
+                    long duration = adapterLogger.calculateDuration(startTime);
+                    adapterLogger.inboundEnd("BranchHandler", "updateName", "branchId=" + branch.getId(), duration);
+                    return ServerResponse.ok()
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(BranchMapper.toResponse(branch));
+                });
     }
 }
 

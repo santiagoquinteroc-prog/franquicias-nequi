@@ -245,12 +245,11 @@ resource "aws_lb_target_group" "app" {
   health_check {
     enabled             = true
     healthy_threshold   = 2
-    unhealthy_threshold = 2
-    timeout             = 5
+    unhealthy_threshold = 3
+    timeout             = 10
     interval            = 30
 
-
-    path     = "/actuator/health"
+    path     = "/actuator/health/liveness"
     matcher  = "200-399"
     protocol = "HTTP"
   }

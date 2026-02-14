@@ -1,5 +1,6 @@
 package com.red.franquicias.nequi.config;
 
+import com.red.franquicias.nequi.logging.AdapterLogger;
 import com.red.franquicias.nequi.model.branch.gateways.BranchRepository;
 import com.red.franquicias.nequi.model.franchise.gateways.FranchiseRepository;
 import com.red.franquicias.nequi.model.product.gateways.ProductRepository;
@@ -17,6 +18,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class UseCasesConfig {
+
+    @Bean
+    public AdapterLogger adapterLogger() {
+        return new AdapterLogger();
+    }
 
     @Bean
     public CreateBranchNameUseCase createBranchNameUseCase(BranchRepository branchRepository) {
