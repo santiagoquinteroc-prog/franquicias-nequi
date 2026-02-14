@@ -85,9 +85,16 @@ subprojects {
     jacocoTestCoverageVerification {
         violationRules {
             rule {
+                element = 'BUNDLE'
                 limit {
-                    minimum = 0.00
+                    counter = 'LINE'
+                    value = 'COVEREDRATIO'
+                    minimum = 0.90
                 }
+                excludes = [
+                    '*.*Application',
+                    '*.*Test'
+                ]
             }
         }
     }
@@ -106,7 +113,7 @@ jacoco {
 }
 
 tasks.register('jacocoMergedReport', JacocoReport) {
-    dependsOn = [test, subprojects.jacocoTestReport, pitestReportAggregate]
+    dependsOn = [test, subprojects.jacocoTestReport]
     additionalSourceDirs.setFrom files(subprojects.sourceSets.main.allSource.srcDirs)
     sourceDirectories.setFrom files(subprojects.sourceSets.main.allSource.srcDirs)
     classDirectories.setFrom files(subprojects.sourceSets.main.output)
@@ -118,6 +125,31 @@ tasks.register('jacocoMergedReport', JacocoReport) {
     }
 }
 
+tasks.register('printCoverage') {
+    dependsOn jacocoMergedReport
+    doLast {
+        def xmlFile = layout.buildDirectory.file("reports/jacocoMergedReport/jacocoMergedReport.xml").get().asFile
+        if (xmlFile.exists()) {
+            def slurper = new groovy.xml.XmlSlurper()
+            slurper.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+            slurper.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+            def report = slurper.parse(xmlFile)
+            def lineCounter = report.counter.find { it.@type == 'LINE' }
+            if (lineCounter) {
+                def covered = lineCounter.@covered.toString().toInteger()
+                def missed = lineCounter.@missed.toString().toInteger()
+                def total = covered + missed
+                def percentage = total > 0 ? Math.round((covered / total) * 10000) / 100 : 0
+                println "==============================="
+                println " Coverage total: ${percentage}%"
+                println " Lines covered: ${covered}/${total}"
+                println "==============================="
+            }
+        } else {
+            println "Reporte XML no encontrado en: ${xmlFile.absolutePath}"
+        }
+    }
+}
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs = [
             '-Amapstruct.suppressGeneratorTimestamp=true'

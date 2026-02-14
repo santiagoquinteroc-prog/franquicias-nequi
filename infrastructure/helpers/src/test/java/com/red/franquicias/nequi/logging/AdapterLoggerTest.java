@@ -63,6 +63,16 @@ class AdapterLoggerTest {
             throw new AssertionError("outboundResponse should not throw", e);
         }
     }
+
+    @Test
+    void adapterLogger_error_shouldNotThrow() {
+        try {
+            RuntimeException exception = new RuntimeException("Test error");
+            adapterLogger.error("Component", "operation", exception, "extra details");
+        } catch (Exception e) {
+            throw new AssertionError("error should not throw", e);
+        }
+    }
 }
 
 

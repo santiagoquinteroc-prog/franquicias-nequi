@@ -12,7 +12,6 @@ import java.time.Duration;
 
 @Configuration
 public class PostgreSQLConnectionPool {
-    /* Change these values for your project */
     public static final int INITIAL_SIZE = 12;
     public static final int MAX_SIZE = 15;
     public static final int MAX_IDLE_TIME = 30;
@@ -28,7 +27,7 @@ public class PostgreSQLConnectionPool {
                         .schema(properties.schema())
                         .username(properties.username())
                         .password(properties.password())
-                        .sslMode(SSLMode.REQUIRE)//todo: enable ssl if needed in production
+//                        .sslMode(SSLMode.REQUIRE)//todo: enable ssl if needed in production
                         .build();
 
         ConnectionPoolConfiguration poolConfiguration = ConnectionPoolConfiguration.builder()
