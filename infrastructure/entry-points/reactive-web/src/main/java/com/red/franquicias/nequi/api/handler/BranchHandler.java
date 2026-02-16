@@ -7,11 +7,14 @@ import com.red.franquicias.nequi.api.validation.RequestValidator;
 import com.red.franquicias.nequi.logging.AdapterLogger;
 import com.red.franquicias.nequi.usecase.createbranch.CreateBranchNameUseCase;
 import com.red.franquicias.nequi.usecase.updatebranch.UpdateBranchNameUseCase;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -24,12 +27,18 @@ import reactor.core.publisher.Mono;
 public class BranchHandler {
     private final CreateBranchNameUseCase createBranchUseCase;
     private final UpdateBranchNameUseCase updateBranchNameUseCase;
+    private final CircuitBreaker branchCircuitBreaker;
     private final RequestValidator requestValidator;
     private final AdapterLogger adapterLogger;
 
-    public BranchHandler(CreateBranchNameUseCase createBranchUseCase, UpdateBranchNameUseCase updateBranchNameUseCase, RequestValidator requestValidator, AdapterLogger adapterLogger) {
+    public BranchHandler(CreateBranchNameUseCase createBranchUseCase,
+                        UpdateBranchNameUseCase updateBranchNameUseCase,
+                        @Qualifier("branchCircuitBreaker") CircuitBreaker branchCircuitBreaker,
+                        RequestValidator requestValidator,
+                        AdapterLogger adapterLogger) {
         this.createBranchUseCase = createBranchUseCase;
         this.updateBranchNameUseCase = updateBranchNameUseCase;
+        this.branchCircuitBreaker = branchCircuitBreaker;
         this.requestValidator = requestValidator;
         this.adapterLogger = adapterLogger;
     }
@@ -50,7 +59,8 @@ public class BranchHandler {
                 .flatMap(branchRequest -> {
                     adapterLogger.outboundRequest("CreateBranchUseCase", "create", "name=" + branchRequest.name());
                     var branch = BranchMapper.toDomain(branchRequest, franchiseId);
-                    return createBranchUseCase.create(branch);
+                    return createBranchUseCase.create(branch)
+                            .transformDeferred(CircuitBreakerOperator.of(branchCircuitBreaker));
                 })
                 .flatMap(branch -> {
                     long duration = adapterLogger.calculateDuration(startTime);
@@ -76,7 +86,8 @@ public class BranchHandler {
                 .flatMap(requestValidator::validate)
                 .flatMap(body -> {
                     adapterLogger.outboundRequest("UpdateBranchUseCase", "updateName", "name=" + body.name());
-                    return updateBranchNameUseCase.updateName(branchId, franchiseId, body.name());
+                    return updateBranchNameUseCase.updateName(branchId, franchiseId, body.name())
+                            .transformDeferred(CircuitBreakerOperator.of(branchCircuitBreaker));
                 })
                 .flatMap(branch -> {
                     long duration = adapterLogger.calculateDuration(startTime);

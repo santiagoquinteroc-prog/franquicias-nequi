@@ -10,11 +10,14 @@ import com.red.franquicias.nequi.usecase.gettopproductsbyfranchise.GetTopProduct
 import com.red.franquicias.nequi.usecase.removeproduct.RemoveProductUseCase;
 import com.red.franquicias.nequi.usecase.updateproduct.UpdateProductNameUseCase;
 import com.red.franquicias.nequi.usecase.updateproductstock.UpdateProductStockUseCase;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -30,15 +33,24 @@ public class ProductHandler {
     private final UpdateProductStockUseCase updateProductStockUseCase;
     private final RemoveProductUseCase removeProductUseCase;
     private final GetTopProductsByFranchiseUseCase getTopProductsByFranchiseUseCase;
+    private final CircuitBreaker productCircuitBreaker;
     private final RequestValidator requestValidator;
     private final AdapterLogger adapterLogger;
 
-    public ProductHandler(CreateProductNameUseCase createProductUseCase, UpdateProductNameUseCase updateProductNameUseCase, UpdateProductStockUseCase updateProductStockUseCase, RemoveProductUseCase removeProductUseCase, GetTopProductsByFranchiseUseCase getTopProductsByFranchiseUseCase, RequestValidator requestValidator, AdapterLogger adapterLogger) {
+    public ProductHandler(CreateProductNameUseCase createProductUseCase,
+                         UpdateProductNameUseCase updateProductNameUseCase,
+                         UpdateProductStockUseCase updateProductStockUseCase,
+                         RemoveProductUseCase removeProductUseCase,
+                         GetTopProductsByFranchiseUseCase getTopProductsByFranchiseUseCase,
+                         @Qualifier("productCircuitBreaker") CircuitBreaker productCircuitBreaker,
+                         RequestValidator requestValidator,
+                         AdapterLogger adapterLogger) {
         this.createProductUseCase = createProductUseCase;
         this.updateProductNameUseCase = updateProductNameUseCase;
         this.updateProductStockUseCase = updateProductStockUseCase;
         this.removeProductUseCase = removeProductUseCase;
         this.getTopProductsByFranchiseUseCase = getTopProductsByFranchiseUseCase;
+        this.productCircuitBreaker = productCircuitBreaker;
         this.requestValidator = requestValidator;
         this.adapterLogger = adapterLogger;
     }
@@ -59,7 +71,8 @@ public class ProductHandler {
                 .flatMap(productRequest -> {
                     adapterLogger.outboundRequest("CreateProductUseCase", "create", "name=" + productRequest.name());
                     Product product = ProductMapper.toDomain(productRequest, branchId);
-                    return createProductUseCase.create(product, franchiseId);
+                    return createProductUseCase.create(product, franchiseId)
+                            .transformDeferred(CircuitBreakerOperator.of(productCircuitBreaker));
                 })
                 .flatMap(product -> {
                     long duration = adapterLogger.calculateDuration(startTime);
@@ -86,7 +99,8 @@ public class ProductHandler {
                 .flatMap(requestValidator::validate)
                 .flatMap(updateRequest -> {
                     adapterLogger.outboundRequest("UpdateProductNameUseCase", "updateName", "name=" + updateRequest.name());
-                    return updateProductNameUseCase.updateName(productId, branchId, franchiseId, updateRequest.name());
+                    return updateProductNameUseCase.updateName(productId, branchId, franchiseId, updateRequest.name())
+                            .transformDeferred(CircuitBreakerOperator.of(productCircuitBreaker));
                 })
                 .flatMap(product -> {
                     long duration = adapterLogger.calculateDuration(startTime);
@@ -113,7 +127,8 @@ public class ProductHandler {
                 .flatMap(requestValidator::validate)
                 .flatMap(updateRequest -> {
                     adapterLogger.outboundRequest("UpdateProductStockUseCase", "updateStock", "stock=" + updateRequest.stock());
-                    return updateProductStockUseCase.updateStock(productId, branchId, franchiseId, updateRequest.stock());
+                    return updateProductStockUseCase.updateStock(productId, branchId, franchiseId, updateRequest.stock())
+                            .transformDeferred(CircuitBreakerOperator.of(productCircuitBreaker));
                 })
                 .flatMap(product -> {
                     long duration = adapterLogger.calculateDuration(startTime);
@@ -135,6 +150,7 @@ public class ProductHandler {
         adapterLogger.inboundStart("ProductHandler", "remove", "productId=" + productId);
 
         return removeProductUseCase.remove(productId, branchId, franchiseId)
+                .transformDeferred(CircuitBreakerOperator.of(productCircuitBreaker))
                 .then(Mono.defer(() -> {
                     long duration = adapterLogger.calculateDuration(startTime);
                     adapterLogger.inboundEnd("ProductHandler", "remove", "productId=" + productId, duration);
@@ -152,6 +168,7 @@ public class ProductHandler {
         adapterLogger.inboundStart("ProductHandler", "getTopProducts", "franchiseId=" + franchiseId);
 
         return getTopProductsByFranchiseUseCase.getTopProducts(franchiseId)
+                .transformDeferred(CircuitBreakerOperator.of(productCircuitBreaker))
                 .map(result -> {
                     adapterLogger.outboundResponse("GetTopProductsByFranchiseUseCase", "getTopProducts", "result=success", 0);
                     return ProductMapper.toTopProductsResponse(result);
